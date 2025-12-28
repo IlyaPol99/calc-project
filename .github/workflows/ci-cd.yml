@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        java-version: [11, 17, 21]
+        java-version: [17]
 
     runs-on: ${{ matrix.os }}
 
@@ -79,3 +79,42 @@ jobs:
         with:
           name: calculator-${{ runner.os }}-jdk${{ matrix.java-version }}
           path: target/*.jar
+
+  # Деплой на self-hosted runner
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: calculator-ubuntu-latest-jdk11
+
+      - name: Stop old app
+        run: |
+          pkill -f "java.*calculator" || true
+          sleep 2
+
+      - name: Deploy new version
+        run: |
+          mkdir -p /opt/calculator-app
+          mv *.jar /opt/calculator-app/calculator.jar
+          chmod +x /opt/calculator-app/calculator.jar
+
+      - name: Start application
+        run: |
+          cd /opt/calculator-app
+          nohup java -jar calculator.jar > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Verify deployment
+        run: |
+          sleep 3
+          if ps -p $(cat /opt/calculator-app/app.pid) > /dev/null; then
+            echo "Application deployed successfully"
+          else
+            echo "Application failed to start"
+            exit 1
+          fi
