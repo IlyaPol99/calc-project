@@ -84,31 +84,17 @@ jobs:
   deploy:
     runs-on: self-hosted
     needs: build
-
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
+      - name: Checkouts
         uses: actions/checkout@v4
 
       - name: Build Docker Image
-        run: docker build -t calculator-app:latest .
+        run: docker build -t polyansk_app:latest .
 
-      - name: Stop and remove old container
+      - name: Run Docker Image
         run: |
-          docker stop calculator-container || true
-          docker rm calculator-container || true
-
-      - name: Run Docker Container
-        run: |
-          docker run -d \
-            --name calculator-container \
-            --restart unless-stopped \
-            calculator-app:latest
-
-      - name: Verify deployment
-        run: |
-          sleep 3
-          echo "Container status:"
-          docker ps --filter "name=calculator-container"
-          
-          echo "Container logs (last 10 lines):"
-          docker logs --tail 10 calculator-container || echo "No logs yet"
+          docker run -t --name ipolyanskapp polyansk_app:latest | echo "3" 
+          echo "3"
+          docker logs ipolyanskapp
+          docker ps -a
