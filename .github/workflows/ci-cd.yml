@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -83,7 +83,7 @@ jobs:
   # Деплой на self-hosted runner
   deploy:
     runs-on: self-hosted
-    needs: build-and-test
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     steps:
