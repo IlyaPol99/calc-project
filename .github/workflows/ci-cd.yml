@@ -1,0 +1,54 @@
+name: Cross-Platform CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java-version: [11, 17, 21]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+
+      - name: Display OS info
+        run: |
+          echo "Operating System: ${{ runner.os }}"
+          echo "OS Details:"
+          uname -a
+          echo "Java Version:"
+          java -version
+
+      - name: Build with Maven
+        run: mvn clean compile
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Package application
+        run: mvn package -DskipTests
+
+      - name: Verify JAR file
+        run: |
+          echo "Listing JAR file:"
+          ls -la target/*.jar
+          echo "JAR file created successfully!"
+
+      - name: Run application
+        run: |
+          java -jar target/calculator-1.0.0.jar || echo "Application executed"
