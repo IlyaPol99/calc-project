@@ -26,29 +26,56 @@ jobs:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
 
-      - name: Display OS info
+      - name: Build and test
+        shell: bash
         run: |
-          echo "Operating System: ${{ runner.os }}"
-          echo "OS Details:"
-          uname -a
-          echo "Java Version:"
-          java -version
+          # Все команды в одном bash shell для кросс-платформенности
+          echo "=== Starting build on ${{ runner.os }} ==="
+          
+          # Компиляция
+          mvn clean compile
+          
+          # Тесты
+          mvn test
+          
+          # Сборка JAR
+          mvn package -DskipTests
+          
+          echo "=== Build completed ==="
 
-      - name: Build with Maven
-        run: mvn clean compile
-
-      - name: Run tests
-        run: mvn test
-
-      - name: Package application
-        run: mvn package -DskipTests
-
-      - name: Verify JAR file
+      - name: Verify and test
+        shell: bash
         run: |
-          echo "Listing JAR file:"
-          ls -la target/*.jar
-          echo "JAR file created successfully!"
+          echo "=== Verification ==="
+          
+          # Проверка JAR файла
+          JAR_FILE="target/calculator-1.0.0.jar"
+          
+          if [[ -f "$JAR_FILE" ]]; then
+            echo "JAR file exists: $JAR_FILE"
+          
+            # Простая проверка размера файла
+            if [[ "${{ runner.os }}" == "Windows" ]]; then
+              # Windows
+              file_size=$(powershell "(Get-Item '$JAR_FILE').Length")
+            else
+              # Linux/Mac
+              file_size=$(stat -f%z "$JAR_FILE" 2>/dev/null || stat -c%s "$JAR_FILE" 2>/dev/null)
+            fi
+          
+            echo "JAR file size: $file_size bytes"
+          
+            # Быстрый тест запуска
+            echo "Quick test:"
+            java -jar "$JAR_FILE" 2>&1 | grep -i "calculator\|success\|error" | head -3 || echo "Test executed"
+          
+          else
+            echo "ERROR: JAR file not found!"
+            exit 1
+          fi
 
-      - name: Run application
-        run: |
-          java -jar target/calculator-1.0.0.jar || echo "Application executed"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: calculator-${{ runner.os }}-jdk${{ matrix.java-version }}
+          path: target/*.jar
