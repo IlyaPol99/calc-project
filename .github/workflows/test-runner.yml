@@ -1,0 +1,14 @@
+name: Test Runner
+
+on: [workflow_dispatch]
+
+jobs:
+  test-self-hosted:
+    runs-on: self-hosted
+
+    steps:
+      - name: Test step
+        run: |
+          echo "✅ Self-hosted runner is working!"
+          echo "OS: $(uname -s)"
+          echo "Date: $(date)"
